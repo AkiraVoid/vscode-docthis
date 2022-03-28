@@ -171,7 +171,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "lint": "node ./node_modules/tslint/bin/tslint src/**/*.ts",
+    "lint": "tslint src/**/*.ts",
     "compile": "npm run lint && tsc -p ./"
   },
   "devDependencies": {
