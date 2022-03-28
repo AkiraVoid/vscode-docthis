@@ -172,14 +172,13 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "lint": "node ./node_modules/tslint/bin/tslint src/**/*.ts",
-    "compile": "npm run lint && tsc -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "compile": "npm run lint && tsc -p ./"
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",
     "@types/node": "^10.17.26",
-    "tslint": "^5.20.1",
-    "vscode": "^1.1.37"
+    "@types/vscode": "^1.22.0",
+    "tslint": "^5.20.1"
   },
   "dependencies": {
     "dateformat": "^3.0.3",
