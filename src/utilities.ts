@@ -37,12 +37,19 @@ export function getDocumentFileName(document: vs.TextDocument) {
     const fileName = fixWinPath(document.fileName);
 
     // Determine if this is a TypeScript document
-    const isTypeScript = document.languageId === "typescript" || document.languageId === "typescriptreact";
+    const isTypeScript =
+        document.languageId === "typescript" ||
+        document.languageId === "typescriptreact";
 
     // Append ".js" if this is not a TypeScript document, but the extension is not ".js"
     // TypeScript's file resolution for allowJs seems to ignore documents if they're missing the extension
-    const adjustedFileName = !isTypeScript && path.extname(fileName) !== "js" ? fileName + ".js" : fileName;
-    return ts.sys.useCaseSensitiveFileNames ? adjustedFileName.toLowerCase() : adjustedFileName;
+    const adjustedFileName =
+        !isTypeScript && path.extname(fileName) !== "js"
+            ? fileName + ".js"
+            : fileName;
+    return ts.sys.useCaseSensitiveFileNames
+        ? adjustedFileName.toLowerCase()
+        : adjustedFileName;
 }
 
 export function fixWinPath(filePath: string) {
@@ -76,7 +83,10 @@ export function findChildForPosition(node: ts.Node, position: number): ts.Node {
     return lastMatchingNode;
 }
 
-export function findFirstChildOfKindDepthFirst(node: ts.Node, kinds = supportedNodeKinds): ts.Node {
+export function findFirstChildOfKindDepthFirst(
+    node: ts.Node,
+    kinds = supportedNodeKinds
+): ts.Node {
     let children = node.getChildren();
     for (let c of children) {
         if (nodeIsOfKind(c, kinds)) {
@@ -95,7 +105,7 @@ export function findFirstChildOfKindDepthFirst(node: ts.Node, kinds = supportedN
 export function findChildrenOfKind(node: ts.Node, kinds = supportedNodeKinds) {
     let children: ts.Node[] = [];
 
-    node.getChildren().forEach(c => {
+    node.getChildren().forEach((c) => {
         if (nodeIsOfKind(c, kinds)) {
             children.push(c);
         }
@@ -111,7 +121,9 @@ export function findNonVoidReturnInCurrentScope(node: ts.Node) {
 
     const children = node.getChildren();
 
-    returnNode = <ts.ReturnStatement>children.find(n => n.kind === ts.SyntaxKind.ReturnStatement);
+    returnNode = <ts.ReturnStatement>(
+        children.find((n) => n.kind === ts.SyntaxKind.ReturnStatement)
+    );
 
     if (returnNode) {
         if (returnNode.getChildren().length > 1) {
@@ -120,7 +132,11 @@ export function findNonVoidReturnInCurrentScope(node: ts.Node) {
     }
 
     for (let child of children) {
-        if (child.kind === ts.SyntaxKind.FunctionDeclaration || child.kind === ts.SyntaxKind.FunctionExpression || child.kind === ts.SyntaxKind.ArrowFunction) {
+        if (
+            child.kind === ts.SyntaxKind.FunctionDeclaration ||
+            child.kind === ts.SyntaxKind.FunctionExpression ||
+            child.kind === ts.SyntaxKind.ArrowFunction
+        ) {
             continue;
         }
 
@@ -133,28 +149,41 @@ export function findNonVoidReturnInCurrentScope(node: ts.Node) {
     return returnNode;
 }
 
-export function findVisibleChildrenOfKind(node: ts.Node, kinds = supportedNodeKinds) {
+export function findVisibleChildrenOfKind(
+    node: ts.Node,
+    kinds = supportedNodeKinds
+) {
     let children = findChildrenOfKind(node, kinds);
 
-    return children.filter(child => {
-        if (child.modifiers && child.modifiers.find(m => m.kind === ts.SyntaxKind.PrivateKeyword)) {
+    return children.filter((child) => {
+        if (
+            child.modifiers &&
+            child.modifiers.find((m) => m.kind === ts.SyntaxKind.PrivateKeyword)
+        ) {
             return false;
         }
 
-        if (child.kind === ts.SyntaxKind.ClassDeclaration ||
+        if (
+            child.kind === ts.SyntaxKind.ClassDeclaration ||
             child.kind === ts.SyntaxKind.InterfaceDeclaration ||
-            child.kind === ts.SyntaxKind.FunctionDeclaration) {
-                if (!child.modifiers || !child.modifiers.find(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
-                    return false;
-                }
+            child.kind === ts.SyntaxKind.FunctionDeclaration
+        ) {
+            if (
+                !child.modifiers ||
+                !child.modifiers.find(
+                    (m) => m.kind === ts.SyntaxKind.ExportKeyword
+                )
+            ) {
+                return false;
             }
+        }
 
         return true;
     });
 }
 
 export function nodeIsOfKind(node: ts.Node, kinds = supportedNodeKinds) {
-    return !!node && !!kinds.find(k => node.kind === k);
+    return !!node && !!kinds.find((k) => node.kind === k);
 }
 
 export function findFirstParent(node: ts.Node, kinds = supportedNodeKinds) {
@@ -224,13 +253,19 @@ export class SnippetStringBuilder {
         return this;
     }
 
-    appendSnippetPlaceholder(value: string | ((snippet: vs.SnippetString) => any), index?: number) {
+    appendSnippetPlaceholder(
+        value: string | ((snippet: vs.SnippetString) => any),
+        index?: number
+    ) {
         this._snippet.appendPlaceholder(value, index);
 
         return this;
     }
 
-    appendSnippetVariable(name: string, defaultValue: string | ((snippet: vs.SnippetString) => any)) {
+    appendSnippetVariable(
+        name: string,
+        defaultValue: string | ((snippet: vs.SnippetString) => any)
+    ) {
         this._snippet.appendVariable(name, defaultValue);
 
         return this;
@@ -246,24 +281,24 @@ export class SnippetStringBuilder {
         if (inline) {
             sb.appendLine(`/** ${lines[0]} */`);
         } else {
-        sb.appendLine("/**");
+            sb.appendLine("/**");
 
-        lines.forEach((line, i) => {
-            if (line === "" && i === lines.length - 1) {
-                return;
-            }
+            lines.forEach((line, i) => {
+                if (line === "" && i === lines.length - 1) {
+                    return;
+                }
 
-            sb.append(" *");
+                sb.append(" *");
 
-            // If it's a blank line or only an initial tab stop, skip adding the trailing space.
-            if (line !== "" && !line.startsWith("$")) {
-                sb.append(" ");
-            }
+                // If it's a blank line, or only an initial tab stop, or only consisted with spaces, skip adding the trailing space.
+                if (line !== "" && !line.startsWith("$") && !/^\s+$/.test(line)) {
+                    sb.append(" ");
+                }
 
-            sb.appendLine(line);
-        });
+                sb.appendLine(line);
+            });
 
-        sb.appendLine(" */");
+            sb.appendLine(" */");
         }
 
         return new vs.SnippetString(sb.toString());

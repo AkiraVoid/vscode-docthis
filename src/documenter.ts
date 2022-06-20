@@ -11,11 +11,19 @@ function includeTypes() {
 }
 
 function inferTypes() {
-    return vs.workspace.getConfiguration().get("docthis.inferTypesFromNames", false);
+    return vs.workspace
+        .getConfiguration()
+        .get("docthis.inferTypesFromNames", false);
 }
 
 function enableHungarianNotationEvaluation() {
-    return vs.workspace.getConfiguration().get("docthis.enableHungarianNotationEvaluation", false);
+    return vs.workspace
+        .getConfiguration()
+        .get("docthis.enableHungarianNotationEvaluation", false);
+}
+
+function lineIndents() {
+    return vs.workspace.getConfiguration().get("docthis.lineIndents", 1);
 }
 
 export class Documenter implements vs.Disposable {
@@ -23,26 +31,46 @@ export class Documenter implements vs.Disposable {
     private _services: ts.LanguageService;
 
     private _outputChannel: vs.OutputChannel;
+    private _lineIndents: string;
 
     constructor() {
         this._languageServiceHost = new LanguageServiceHost();
 
         this._services = ts.createLanguageService(
-            this._languageServiceHost, ts.createDocumentRegistry());
+            this._languageServiceHost,
+            ts.createDocumentRegistry()
+        );
+
+        this._lineIndents = " ".repeat(lineIndents() > 0 ? lineIndents() : 0);
     }
 
-    documentThis(editor: vs.TextEditor, commandName: string, forCompletion: boolean) {
+    documentThis(
+        editor: vs.TextEditor,
+        commandName: string,
+        forCompletion: boolean
+    ) {
+        this._lineIndents = " ".repeat(lineIndents() > 0 ? lineIndents() : 0);
         const sourceFile = this._getSourceFile(editor.document);
 
         const selection = editor.selection;
         const caret = selection.start;
 
-        const position = ts.getPositionOfLineAndCharacter(sourceFile, caret.line, caret.character);
+        const position = ts.getPositionOfLineAndCharacter(
+            sourceFile,
+            caret.line,
+            caret.character
+        );
         const node = utils.findChildForPosition(sourceFile, position);
-        let documentNode = utils.nodeIsOfKind(node) ? node : utils.findFirstParent(node);
-        if (documentNode && documentNode.kind === ts.SyntaxKind.VariableDeclarationList) {
+        let documentNode = utils.nodeIsOfKind(node)
+            ? node
+            : utils.findFirstParent(node);
+        if (
+            documentNode &&
+            documentNode.kind === ts.SyntaxKind.VariableDeclarationList
+        ) {
             // extract VariableDeclaration from VariableDeclarationList
-            documentNode = (<ts.VariableDeclarationList> documentNode).declarations[0];
+            documentNode = (<ts.VariableDeclarationList>documentNode)
+                .declarations[0];
         }
 
         if (!documentNode) {
@@ -67,7 +95,11 @@ export class Documenter implements vs.Disposable {
 
         const sourceFile = this._getSourceFile(editor.document);
 
-        const position = ts.getPositionOfLineAndCharacter(sourceFile, caret.line, caret.character);
+        const position = ts.getPositionOfLineAndCharacter(
+            sourceFile,
+            caret.line,
+            caret.character
+        );
         const node = utils.findChildForPosition(sourceFile, position);
 
         const nodes: string[] = [];
@@ -84,7 +116,9 @@ export class Documenter implements vs.Disposable {
         });
 
         if (!this._outputChannel) {
-            this._outputChannel = vs.window.createOutputChannel("TypeScript Syntax Node Trace");
+            this._outputChannel = vs.window.createOutputChannel(
+                "TypeScript Syntax Node Trace"
+            );
         }
 
         this._outputChannel.show();
@@ -93,7 +127,11 @@ export class Documenter implements vs.Disposable {
 
     private _printNodeInfo(node: ts.Node, sourceFile: ts.SourceFile) {
         const sb = new utils.StringBuilder();
-        sb.append(`${node.getStart()} to ${node.getEnd()} --- (${node.kind}) ${(<any>ts).SyntaxKind[node.kind]}`);
+        sb.append(
+            `${node.getStart()} to ${node.getEnd()} --- (${node.kind}) ${
+                (<any>ts).SyntaxKind[node.kind]
+            }`
+        );
 
         if (node.parent) {
             const nodeIndex = node.parent.getChildren().indexOf(node);
@@ -105,7 +143,9 @@ export class Documenter implements vs.Disposable {
 
         sb.appendLine();
 
-        const column = sourceFile.getLineAndCharacterOfPosition(node.getStart()).character;
+        const column = sourceFile.getLineAndCharacterOfPosition(
+            node.getStart()
+        ).character;
         for (let i = 0; i < column; i++) {
             sb.append(" ");
         }
@@ -116,11 +156,21 @@ export class Documenter implements vs.Disposable {
     }
 
     private _showFailureMessage(commandName: string, condition: string) {
-        vs.window.showErrorMessage(`Sorry! '${commandName}' wasn't able to produce documentation ${condition}.`);
+        vs.window.showErrorMessage(
+            `Sorry! '${commandName}' wasn't able to produce documentation ${condition}.`
+        );
     }
 
-    private _insertDocumentation(sb: utils.SnippetStringBuilder, location: ts.LineAndCharacter, editor: vs.TextEditor, forCompletion: boolean) {
-        const startPosition = new vs.Position(forCompletion ? location.line - 1 : location.line, location.character);
+    private _insertDocumentation(
+        sb: utils.SnippetStringBuilder,
+        location: ts.LineAndCharacter,
+        editor: vs.TextEditor,
+        forCompletion: boolean
+    ) {
+        const startPosition = new vs.Position(
+            forCompletion ? location.line - 1 : location.line,
+            location.character
+        );
         const endPosition = new vs.Position(location.line, location.character);
 
         const range = new Range(startPosition, endPosition);
@@ -131,25 +181,34 @@ export class Documenter implements vs.Disposable {
     private _getSourceFile(document: vs.TextDocument) {
         const fileText = document.getText();
         const canonicalFileName = utils.getDocumentFileName(document);
-        this._languageServiceHost.updateCurrentFile(canonicalFileName, fileText);
+        this._languageServiceHost.updateCurrentFile(
+            canonicalFileName,
+            fileText
+        );
 
         this._services.getSyntacticDiagnostics(canonicalFileName);
 
-        const sourceFile = this._services.getProgram().getSourceFile(canonicalFileName);
+        const sourceFile = this._services
+            .getProgram()
+            .getSourceFile(canonicalFileName);
 
         const newText = document.getText();
         sourceFile.update(newText, <ts.TextChangeRange>{
             newLength: newText.length,
             span: <ts.TextSpan>{
                 start: 0,
-                length: newText.length
-            }
+                length: newText.length,
+            },
         });
 
         return sourceFile;
     }
 
-    private _documentNode(sb: utils.SnippetStringBuilder, node: ts.Node, sourceFile: ts.SourceFile): ts.LineAndCharacter {
+    private _documentNode(
+        sb: utils.SnippetStringBuilder,
+        node: ts.Node,
+        sourceFile: ts.SourceFile
+    ): ts.LineAndCharacter {
         switch (node.kind) {
             case ts.SyntaxKind.ClassDeclaration:
                 this._emitClassDeclaration(sb, <ts.ClassDeclaration>node);
@@ -161,7 +220,10 @@ export class Documenter implements vs.Disposable {
                 this._emitPropertyDeclaration(sb, <ts.AccessorDeclaration>node);
                 break;
             case ts.SyntaxKind.InterfaceDeclaration:
-                this._emitInterfaceDeclaration(sb, <ts.InterfaceDeclaration>node);
+                this._emitInterfaceDeclaration(
+                    sb,
+                    <ts.InterfaceDeclaration>node
+                );
                 break;
             case ts.SyntaxKind.EnumDeclaration:
                 this._emitEnumDeclaration(sb, <ts.EnumDeclaration>node);
@@ -176,13 +238,24 @@ export class Documenter implements vs.Disposable {
                 this._emitMethodDeclaration(sb, <ts.MethodDeclaration>node);
                 break;
             case ts.SyntaxKind.Constructor:
-                this._emitConstructorDeclaration(sb, <ts.ConstructorDeclaration>node);
+                this._emitConstructorDeclaration(
+                    sb,
+                    <ts.ConstructorDeclaration>node
+                );
                 break;
             case ts.SyntaxKind.FunctionExpression:
             case ts.SyntaxKind.ArrowFunction:
-                return this._emitFunctionExpression(sb, <ts.FunctionExpression>node, sourceFile);
+                return this._emitFunctionExpression(
+                    sb,
+                    <ts.FunctionExpression>node,
+                    sourceFile
+                );
             case ts.SyntaxKind.VariableDeclaration:
-                return this._emitVariableDeclaration(sb, <ts.VariableDeclaration>node, sourceFile);
+                return this._emitVariableDeclaration(
+                    sb,
+                    <ts.VariableDeclaration>node,
+                    sourceFile
+                );
             default:
                 return;
         }
@@ -191,11 +264,18 @@ export class Documenter implements vs.Disposable {
     }
 
     private _emitDescriptionHeader(sb: utils.SnippetStringBuilder) {
-        if (vs.workspace.getConfiguration().get("docthis.includeDescriptionTag", false)) {
-            sb.append("@description");
+        if (
+            vs.workspace
+                .getConfiguration()
+                .get("docthis.includeDescriptionTag", false)
+        ) {
+            sb.append(
+                `@description${this._lineIndents ? this._lineIndents : " "}`
+            );
             sb.appendSnippetTabstop();
             sb.appendLine();
         } else {
+            sb.append(this._lineIndents);
             // We don't want description tag, probably because we want to free type the description. So add space for that.
             sb.appendSnippetTabstop();
             sb.appendLine();
@@ -206,25 +286,45 @@ export class Documenter implements vs.Disposable {
     }
 
     private _emitAuthor(sb: utils.SnippetStringBuilder) {
-        if (vs.workspace.getConfiguration().get("docthis.includeAuthorTag", false)) {
-            const author: string = vs.workspace.getConfiguration().get("docthis.authorName", "");
-            sb.append("@author " + author);
+        if (
+            vs.workspace
+                .getConfiguration()
+                .get("docthis.includeAuthorTag", false)
+        ) {
+            const author: string = vs.workspace
+                .getConfiguration()
+                .get("docthis.authorName", "");
+            sb.append(
+                `@author${this._lineIndents ? this._lineIndents : " "}` + author
+            );
             sb.appendSnippetTabstop();
             sb.appendLine();
         }
     }
 
     private _emitDate(sb: utils.SnippetStringBuilder) {
-        if (vs.workspace.getConfiguration().get("docthis.includeDateTag", false)) {
-            const dateFormatInput: string = vs.workspace.getConfiguration().get("docthis.dateTagFormat");
-            const dateToAppend: string = dateformat(new Date(), dateFormatInput) || "";
-            sb.append("@date " + dateToAppend);
+        if (
+            vs.workspace.getConfiguration().get("docthis.includeDateTag", false)
+        ) {
+            const dateFormatInput: string = vs.workspace
+                .getConfiguration()
+                .get("docthis.dateTagFormat");
+            const dateToAppend: string =
+                dateformat(new Date(), dateFormatInput) || "";
+            sb.append(
+                `@date${this._lineIndents ? this._lineIndents : " "}` +
+                    dateToAppend
+            );
             sb.appendSnippetTabstop();
             sb.appendLine();
         }
     }
 
-    private _emitVariableDeclaration(sb: utils.SnippetStringBuilder, node: ts.VariableDeclaration, sourceFile: ts.SourceFile) {
+    private _emitVariableDeclaration(
+        sb: utils.SnippetStringBuilder,
+        node: ts.VariableDeclaration,
+        sourceFile: ts.SourceFile
+    ) {
         for (const child of node.getChildren()) {
             const result = this._documentNode(sb, child, sourceFile);
             if (result) {
@@ -233,17 +333,28 @@ export class Documenter implements vs.Disposable {
         }
 
         sb.append(`@type {*}`);
-        return ts.getLineAndCharacterOfPosition(sourceFile, node.parent.getStart());
+        return ts.getLineAndCharacterOfPosition(
+            sourceFile,
+            node.parent.getStart()
+        );
     }
 
-    private _emitFunctionExpression(sb: utils.SnippetStringBuilder, node: ts.FunctionExpression | ts.ArrowFunction, sourceFile: ts.SourceFile) {
+    private _emitFunctionExpression(
+        sb: utils.SnippetStringBuilder,
+        node: ts.FunctionExpression | ts.ArrowFunction,
+        sourceFile: ts.SourceFile
+    ) {
         let targetNode = node.parent;
 
-        if (node.parent.kind !== ts.SyntaxKind.PropertyAssignment &&
+        if (
+            node.parent.kind !== ts.SyntaxKind.PropertyAssignment &&
             node.parent.kind !== ts.SyntaxKind.BinaryExpression &&
-            node.parent.kind !== ts.SyntaxKind.PropertyDeclaration) {
-
-            targetNode = utils.findFirstParent(targetNode, [ts.SyntaxKind.VariableDeclarationList, ts.SyntaxKind.VariableDeclaration]);
+            node.parent.kind !== ts.SyntaxKind.PropertyDeclaration
+        ) {
+            targetNode = utils.findFirstParent(targetNode, [
+                ts.SyntaxKind.VariableDeclarationList,
+                ts.SyntaxKind.VariableDeclaration,
+            ]);
             if (!targetNode) {
                 return;
             }
@@ -257,10 +368,16 @@ export class Documenter implements vs.Disposable {
         this._emitReturns(sb, node);
         this._emitMemberOf(sb, node.parent);
 
-        return ts.getLineAndCharacterOfPosition(sourceFile, targetNode.getStart());
+        return ts.getLineAndCharacterOfPosition(
+            sourceFile,
+            targetNode.getStart()
+        );
     }
 
-    private _emitClassDeclaration(sb: utils.SnippetStringBuilder, node: ts.ClassDeclaration) {
+    private _emitClassDeclaration(
+        sb: utils.SnippetStringBuilder,
+        node: ts.ClassDeclaration
+    ) {
         this._emitDescriptionHeader(sb);
         this._emitAuthor(sb);
         this._emitDate(sb);
@@ -270,7 +387,11 @@ export class Documenter implements vs.Disposable {
         sb.append("@class");
 
         if (node.name) {
-            sb.append(` ${node.name.getText()}`);
+            sb.append(
+                `${
+                    this._lineIndents ? this._lineIndents : " "
+                }${node.name.getText()}`
+            );
         }
 
         sb.appendLine();
@@ -279,17 +400,31 @@ export class Documenter implements vs.Disposable {
         this._emitTypeParameters(sb, node);
     }
 
-    private _emitPropertyDeclaration(sb: utils.SnippetStringBuilder, node: ts.PropertyDeclaration | ts.AccessorDeclaration) {
+    private _emitPropertyDeclaration(
+        sb: utils.SnippetStringBuilder,
+        node: ts.PropertyDeclaration | ts.AccessorDeclaration
+    ) {
         this._emitDescriptionHeader(sb);
         this._emitAuthor(sb);
         this._emitDate(sb);
 
         if (node.kind === ts.SyntaxKind.GetAccessor) {
-            const name = utils.findFirstChildOfKindDepthFirst(node, [ts.SyntaxKind.Identifier]).getText();
+            const name = utils
+                .findFirstChildOfKindDepthFirst(node, [
+                    ts.SyntaxKind.Identifier,
+                ])
+                .getText();
             const parentClass = <ts.ClassDeclaration>node.parent;
 
-            let hasSetter = !!parentClass.members.find(c => c.kind === ts.SyntaxKind.SetAccessor &&
-                utils.findFirstChildOfKindDepthFirst(c, [ts.SyntaxKind.Identifier]).getText() === name);
+            let hasSetter = !!parentClass.members.find(
+                (c) =>
+                    c.kind === ts.SyntaxKind.SetAccessor &&
+                    utils
+                        .findFirstChildOfKindDepthFirst(c, [
+                            ts.SyntaxKind.Identifier,
+                        ])
+                        .getText() === name
+            );
 
             if (!hasSetter) {
                 sb.appendLine("@readonly");
@@ -305,39 +440,65 @@ export class Documenter implements vs.Disposable {
         // JSDoc fails to emit documentation for arrow function syntax. (https://github.com/jsdoc3/jsdoc/issues/1100)
         if (includeTypes()) {
             if (node.type && node.type.getText().indexOf("=>") === -1) {
-                sb.appendLine(`@type ${utils.formatTypeName(node.type.getText())}`);
-            } else if (enableHungarianNotationEvaluation() && this._isHungarianNotation(node.name.getText())) {
-                sb.appendLine(`@type ${this._getHungarianNotationType(node.name.getText())}`);
+                sb.appendLine(
+                    `@type${
+                        this._lineIndents ? this._lineIndents : " "
+                    }${utils.formatTypeName(node.type.getText())}`
+                );
+            } else if (
+                enableHungarianNotationEvaluation() &&
+                this._isHungarianNotation(node.name.getText())
+            ) {
+                sb.appendLine(
+                    `@type${
+                        this._lineIndents ? this._lineIndents : " "
+                    }${this._getHungarianNotationType(node.name.getText())}`
+                );
             }
         }
 
         this._emitMemberOf(sb, node.parent);
     }
 
-    private _emitInterfaceDeclaration(sb: utils.SnippetStringBuilder, node: ts.InterfaceDeclaration) {
+    private _emitInterfaceDeclaration(
+        sb: utils.SnippetStringBuilder,
+        node: ts.InterfaceDeclaration
+    ) {
         this._emitDescriptionHeader(sb);
         this._emitAuthor(sb);
         this._emitDate(sb);
 
         this._emitModifiers(sb, node);
 
-        sb.appendLine(`@interface ${node.name.getText()}`);
+        sb.appendLine(
+            `@interface${
+                this._lineIndents ? this._lineIndents : " "
+            }${node.name.getText()}`
+        );
 
         this._emitHeritageClauses(sb, node);
         this._emitTypeParameters(sb, node);
     }
 
-    private _emitEnumDeclaration(sb: utils.SnippetStringBuilder, node: ts.EnumDeclaration) {
+    private _emitEnumDeclaration(
+        sb: utils.SnippetStringBuilder,
+        node: ts.EnumDeclaration
+    ) {
         this._emitDescriptionHeader(sb);
         this._emitAuthor(sb);
         this._emitDate(sb);
 
         this._emitModifiers(sb, node);
 
-        sb.appendLine(`@enum {number}`);
+        sb.appendLine(
+            `@enum${this._lineIndents ? this._lineIndents : " "}{number}`
+        );
     }
 
-    private _emitMethodDeclaration(sb: utils.SnippetStringBuilder, node: ts.MethodDeclaration | ts.FunctionDeclaration) {
+    private _emitMethodDeclaration(
+        sb: utils.SnippetStringBuilder,
+        node: ts.MethodDeclaration | ts.FunctionDeclaration
+    ) {
         this._emitDescriptionHeader(sb);
         this._emitAuthor(sb);
         this._emitDate(sb);
@@ -350,10 +511,25 @@ export class Documenter implements vs.Disposable {
     }
 
     private _emitMemberOf(sb: utils.SnippetStringBuilder, parent: ts.Node) {
-        let enabledForClasses = parent.kind === ts.SyntaxKind.ClassDeclaration && vs.workspace.getConfiguration().get("docthis.includeMemberOfOnClassMembers", true);
-        let enabledForInterfaces = parent.kind === ts.SyntaxKind.InterfaceDeclaration && vs.workspace.getConfiguration().get("docthis.includeMemberOfOnInterfaceMembers", true);
-        if (parent && (<any>parent)["name"] && (enabledForClasses || enabledForInterfaces)) {
-            sb.appendLine("@memberof " + (<any>parent)["name"].text);
+        let enabledForClasses =
+            parent.kind === ts.SyntaxKind.ClassDeclaration &&
+            vs.workspace
+                .getConfiguration()
+                .get("docthis.includeMemberOfOnClassMembers", true);
+        let enabledForInterfaces =
+            parent.kind === ts.SyntaxKind.InterfaceDeclaration &&
+            vs.workspace
+                .getConfiguration()
+                .get("docthis.includeMemberOfOnInterfaceMembers", true);
+        if (
+            parent &&
+            (<any>parent)["name"] &&
+            (enabledForClasses || enabledForInterfaces)
+        ) {
+            sb.appendLine(
+                `@memberof${this._lineIndents ? this._lineIndents : " "}` +
+                    (<any>parent)["name"].text
+            );
         }
     }
 
@@ -374,27 +550,50 @@ export class Documenter implements vs.Disposable {
         return "";
     }
 
-    private _emitReturns(sb: utils.SnippetStringBuilder, node: ts.MethodDeclaration | ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction) {
-        if (utils.findNonVoidReturnInCurrentScope(node) || (node.type && node.type.getText() !== "void")) {
-            if (vs.workspace.getConfiguration().get("docthis.returnsTag", true)) {
-                sb.append("@returns {*} ");
-            }
-            else {
-                sb.append("@return {*} ");
+    private _emitReturns(
+        sb: utils.SnippetStringBuilder,
+        node:
+            | ts.MethodDeclaration
+            | ts.FunctionDeclaration
+            | ts.FunctionExpression
+            | ts.ArrowFunction
+    ) {
+        if (
+            utils.findNonVoidReturnInCurrentScope(node) ||
+            (node.type && node.type.getText() !== "void")
+        ) {
+            if (
+                vs.workspace.getConfiguration().get("docthis.returnsTag", true)
+            ) {
+                sb.append(
+                    `@returns${this._lineIndents ? this._lineIndents : " "}{*}${
+                        this._lineIndents ? this._lineIndents : " "
+                    }`
+                );
+            } else {
+                sb.append(
+                    `@return${this._lineIndents ? this._lineIndents : " "}{*}${
+                        this._lineIndents ? this._lineIndents : " "
+                    }`
+                );
             }
 
             if (includeTypes() && node.type) {
-                sb.append(" " + utils.formatTypeName(node.type.getText()));
-            }
-            else if (includeTypes() && inferTypes()) {
-                sb.append(" " + this._inferReturnTypeFromName(node.name.getText()));
+                sb.append(
+                    (this._lineIndents ? this._lineIndents : " ") +
+                        utils.formatTypeName(node.type.getText())
+                );
+            } else if (includeTypes() && inferTypes()) {
+                sb.append(
+                    (this._lineIndents ? this._lineIndents : " ") +
+                        this._inferReturnTypeFromName(node.name.getText())
+                );
             }
 
             sb.appendSnippetTabstop();
 
             sb.appendLine();
         }
-
     }
 
     private _inferParamTypeFromName(name: string): string {
@@ -409,15 +608,24 @@ export class Documenter implements vs.Disposable {
         return "{*}";
     }
 
-    private _emitParameters(sb: utils.SnippetStringBuilder, node:
-        ts.MethodDeclaration | ts.FunctionDeclaration | ts.ConstructorDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.PropertyDeclaration) {
-
+    private _emitParameters(
+        sb: utils.SnippetStringBuilder,
+        node:
+            | ts.MethodDeclaration
+            | ts.FunctionDeclaration
+            | ts.ConstructorDeclaration
+            | ts.FunctionExpression
+            | ts.ArrowFunction
+            | ts.PropertyDeclaration
+    ) {
         if (node.kind === ts.SyntaxKind.PropertyDeclaration) {
             const propertyChildren: ts.Node[] = node.getChildren();
 
-            const arrowFunction: ts.Node = propertyChildren.find((child: ts.Node) => {
-                return child.kind === ts.SyntaxKind.ArrowFunction;
-            });
+            const arrowFunction: ts.Node = propertyChildren.find(
+                (child: ts.Node) => {
+                    return child.kind === ts.SyntaxKind.ArrowFunction;
+                }
+            );
 
             if (!arrowFunction) {
                 return;
@@ -439,14 +647,22 @@ export class Documenter implements vs.Disposable {
         }
     }
 
-    private _generateParameters(sb: utils.SnippetStringBuilder, node:
-        ts.MethodDeclaration | ts.FunctionDeclaration | ts.ConstructorDeclaration | ts.FunctionExpression | ts.ArrowFunction): void {
-
-        node.parameters.forEach(parameter => {
+    private _generateParameters(
+        sb: utils.SnippetStringBuilder,
+        node:
+            | ts.MethodDeclaration
+            | ts.FunctionDeclaration
+            | ts.ConstructorDeclaration
+            | ts.FunctionExpression
+            | ts.ArrowFunction
+    ): void {
+        node.parameters.forEach((parameter) => {
             const name = parameter.name.getText();
             const isOptional = parameter.questionToken || parameter.initializer;
             const isArgs = !!parameter.dotDotDotToken;
-            const initializerValue = parameter.initializer ? parameter.initializer.getText() : null;
+            const initializerValue = parameter.initializer
+                ? parameter.initializer.getText()
+                : null;
 
             let typeName = "{*}";
 
@@ -454,29 +670,34 @@ export class Documenter implements vs.Disposable {
                 if (parameter.initializer && !parameter.type) {
                     if (/^[0-9]/.test(initializerValue)) {
                         typeName = "{number}";
-                    }
-                    else if (initializerValue.indexOf("\"") !== -1 ||
+                    } else if (
+                        initializerValue.indexOf("\"") !== -1 ||
                         initializerValue.indexOf("'") !== -1 ||
-                        initializerValue.indexOf("`") !== -1) {
+                        initializerValue.indexOf("`") !== -1
+                    ) {
                         typeName = "{string}";
-                    }
-                    else if (initializerValue.indexOf("true") !== -1 ||
-                        initializerValue.indexOf("false") !== -1) {
+                    } else if (
+                        initializerValue.indexOf("true") !== -1 ||
+                        initializerValue.indexOf("false") !== -1
+                    ) {
                         typeName = "{boolean}";
                     }
-                }
-                else if (parameter.type) {
-                    typeName = utils.formatTypeName((isArgs ? "..." : "") + parameter.type.getFullText().trim());
-                }
-                else if (enableHungarianNotationEvaluation() && this._isHungarianNotation(name)) {
+                } else if (parameter.type) {
+                    typeName = utils.formatTypeName(
+                        (isArgs ? "..." : "") +
+                            parameter.type.getFullText().trim()
+                    );
+                } else if (
+                    enableHungarianNotationEvaluation() &&
+                    this._isHungarianNotation(name)
+                ) {
                     typeName = this._getHungarianNotationType(name);
-                }
-                else if (inferTypes()) {
+                } else if (inferTypes()) {
                     typeName = this._inferParamTypeFromName(name);
                 }
             }
 
-            sb.append("@param ");
+            sb.append(`@param${this._lineIndents ? this._lineIndents : " "}`);
 
             if (includeTypes()) {
                 sb.append(typeName + " ");
@@ -508,22 +729,36 @@ export class Documenter implements vs.Disposable {
 
     private _getHungarianNotationType(name: string): string {
         switch (name.charAt(0)) {
-            case "a": return "{Array}";
-            case "b": return "{boolean}";
-            case "e": return "{Object}"; // Enumeration
-            case "f": return "{function}";
-            case "i": return "{number}";
-            case "m": return "{Object}"; // Map
-            case "o": return "{Object}";
-            case "s": return "{string}";
-            default: return "{*}";
+            case "a":
+                return "{Array}";
+            case "b":
+                return "{boolean}";
+            case "e":
+                return "{Object}"; // Enumeration
+            case "f":
+                return "{function}";
+            case "i":
+                return "{number}";
+            case "m":
+                return "{Object}"; // Map
+            case "o":
+                return "{Object}";
+            case "s":
+                return "{string}";
+            default:
+                return "{*}";
         }
     }
 
-    private _emitConstructorDeclaration(sb: utils.SnippetStringBuilder, node: ts.ConstructorDeclaration) {
-        sb.appendSnippetPlaceholder(` Creates an instance of ${
-            (<ts.ClassDeclaration>node.parent).name.getText()
-            }.`);
+    private _emitConstructorDeclaration(
+        sb: utils.SnippetStringBuilder,
+        node: ts.ConstructorDeclaration
+    ) {
+        sb.appendSnippetPlaceholder(
+            ` Creates an instance of ${(<ts.ClassDeclaration>(
+                node.parent
+            )).name.getText()}.`
+        );
         sb.appendLine();
         this._emitAuthor(sb);
         this._emitDate(sb);
@@ -532,35 +767,58 @@ export class Documenter implements vs.Disposable {
         this._emitMemberOf(sb, node.parent);
     }
 
-    private _emitTypeParameters(sb: utils.SnippetStringBuilder, node: ts.ClassLikeDeclaration | ts.InterfaceDeclaration | ts.MethodDeclaration | ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction) {
+    private _emitTypeParameters(
+        sb: utils.SnippetStringBuilder,
+        node:
+            | ts.ClassLikeDeclaration
+            | ts.InterfaceDeclaration
+            | ts.MethodDeclaration
+            | ts.FunctionDeclaration
+            | ts.FunctionExpression
+            | ts.ArrowFunction
+    ) {
         if (!node.typeParameters) {
             return;
         }
 
-        node.typeParameters.forEach(parameter => {
-            sb.append(`@template ${parameter.name.getText()}`);
+        node.typeParameters.forEach((parameter) => {
+            sb.append(
+                `@template${
+                    this._lineIndents ? this._lineIndents : " "
+                }${parameter.name.getText()}`
+            );
             sb.appendSnippetTabstop();
             sb.appendLine();
         });
     }
 
-    private _emitHeritageClauses(sb: utils.SnippetStringBuilder, node: ts.ClassLikeDeclaration | ts.InterfaceDeclaration) {
+    private _emitHeritageClauses(
+        sb: utils.SnippetStringBuilder,
+        node: ts.ClassLikeDeclaration | ts.InterfaceDeclaration
+    ) {
         if (!node.heritageClauses || !includeTypes()) {
             return;
         }
 
         node.heritageClauses.forEach((clause) => {
-            const heritageType = clause.token === ts.SyntaxKind.ExtendsKeyword ? "@extends" : "@implements";
+            const heritageType =
+                clause.token === ts.SyntaxKind.ExtendsKeyword
+                    ? "@extends"
+                    : "@implements";
 
-            clause.types.forEach(t => {
+            clause.types.forEach((t) => {
                 let tn = t.expression.getText();
                 if (t.typeArguments) {
                     tn += "<";
-                    tn += t.typeArguments.map(a => a.getText()).join(", ");
+                    tn += t.typeArguments.map((a) => a.getText()).join(", ");
                     tn += ">";
                 }
 
-                sb.append(`${heritageType} ${utils.formatTypeName(tn)}`);
+                sb.append(
+                    `${heritageType}${
+                        this._lineIndents ? this._lineIndents : " "
+                    }${utils.formatTypeName(tn)}`
+                );
                 sb.appendLine();
             });
         });
@@ -571,18 +829,23 @@ export class Documenter implements vs.Disposable {
             return;
         }
 
-        node.modifiers.forEach(modifier => {
+        node.modifiers.forEach((modifier) => {
             switch (modifier.kind) {
                 case ts.SyntaxKind.ExportKeyword:
-                    sb.appendLine("@export"); return;
+                    sb.appendLine("@export");
+                    return;
                 case ts.SyntaxKind.AbstractKeyword:
-                    sb.appendLine("@abstract"); return;
+                    sb.appendLine("@abstract");
+                    return;
                 case ts.SyntaxKind.ProtectedKeyword:
-                    sb.appendLine("@protected"); return;
+                    sb.appendLine("@protected");
+                    return;
                 case ts.SyntaxKind.PrivateKeyword:
-                    sb.appendLine("@private"); return;
+                    sb.appendLine("@private");
+                    return;
                 case ts.SyntaxKind.StaticKeyword:
-                    sb.appendLine("@static"); return;
+                    sb.appendLine("@static");
+                    return;
             }
         });
     }

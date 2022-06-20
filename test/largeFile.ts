@@ -27,7 +27,7 @@ interface SomeInterface {
 }
 
 /**
- * This description was written from the //* syntax
+ *
  *
  * @class SomeClass
  */
@@ -36,7 +36,12 @@ class SomeClass {
      * Testing a property.
      *
      * @memberOf SomeClass
-     */someProperty = true;
+     */
+    /**
+     * @description  
+     * @memberof  SomeClass
+     */
+    someProperty = true;
 
     /**
      * This description was written from the Ctrl+Alt+D D shortcut.
