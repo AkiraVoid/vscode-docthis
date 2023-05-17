@@ -1,15 +1,17 @@
 # Document This
 
-[Download from Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=oouo-diogo-perdigao.docthis)
+---
 
-[ ![Build Status](https://travis-ci.org/oouo-diogo-perdigao/vscode-docthis.svg?branch=master)](https://travis-ci.org/oouo-diogo-perdigao/vscode-docthis) [ ![Paypal Donations](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=GG4X8R7UTV3AN&source=url)
+[Download from Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=oouo-diogo-perdigao.docthis)
+[![Paypal Donations](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=GG4X8R7UTV3AN&source=url)
+
+---
 
 ## Description
 
 "Document This" is a Visual Studio Code extension that automatically generates detailed JSDoc comments for both TypeScript and JavaScript files.
 
  ![Demo showing the extension generating documentation on a class and the classes constructor method](images/demo.gif)
-
 
 ---
 
@@ -29,13 +31,11 @@ Prints info about the node ancestry at a given caret position.
 * Windows/Linux: No default key binding
 * MacOS: No default key binding
 
-
 ---
 
 ### Supported tags
 
 Supports JSDoc and Closure Compiler tags: @class, @description, @enum, @export, @function, @implements, @interface, @param, @private, @returns or @return, @static, @template, @type, @memberOf and @date.
-
 
 ---
 
@@ -53,7 +53,6 @@ Supports JSDoc and Closure Compiler tags: @class, @description, @enum, @export, 
 | docthis.authorName | When docthis.includeAuthorTag is enabled, will add @author tag with this value. | None: Set the text for this tag by adding docthis.authorName to your settings file. |
 | docthis.includeDateTag | When enabled, will add the @date tag in dd-mm-yyyy format. | False |
 | docthis.returnsTag | Put @returns in place of @returns | False |
-
 
 ---
 
@@ -92,5 +91,3 @@ Supports JSDoc and Closure Compiler tags: @class, @description, @enum, @export, 
 | `Z` | US timezone abbreviation, e.g. EST or MDT. With non-US timezones or in the |
 | `'...'`, `"..."` | Literal character sequence. Surrounding quotes are removed. |
 | `UTC:` | Must be the first four characters of the mask. Converts the date from local time to UTC/GMT/Zulu time before applying the mask. The "UTC:" prefix is removed. |
-
-
